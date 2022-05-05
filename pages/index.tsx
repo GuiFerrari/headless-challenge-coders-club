@@ -1,40 +1,26 @@
+import { useCallback } from 'react';
+import { useRouter } from 'next/router';
+import { GetServerSideProps } from 'next'
 import Head from 'next/head'
+import Contentful from "contentful";
 
 import Layout from '../components/Layout'
 import PostCard from '../components/PostCard'
+import { getPosts, Post } from '../services/content'
 
-const posts = [{
-  id: 1,
-  title: 'Fortnite Challenges Have Grown Stale',
-  description: 'Lorem Ipsum has been the industrys standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.',
-  thumbnail: 'https://home.multilogica.com.br/wp-content/uploads/2021/03/placeholder.png'
-},
-{
-  id: 2,
-  title: 'Secret vs. OG: Katowice starts with a highlight',
-  description: 'Lorem Ipsum has been the industrys standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.',
-  thumbnail: 'https://home.multilogica.com.br/wp-content/uploads/2021/03/placeholder.png'
-},
-{
-  id: 3,
-  title: 'MDL Macau: VP, EG and Liquid fight for the throne',
-  description: 'Lorem Ipsum has been the industrys standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.',
-  thumbnail: 'https://home.multilogica.com.br/wp-content/uploads/2021/03/placeholder.png'
-},
-{
-  id: 4,
-  title: 'Fortnite Challenges Have Grown Stale',
-  description: 'Lorem Ipsum has been the industrys standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.',
-  thumbnail: 'https://home.multilogica.com.br/wp-content/uploads/2021/03/placeholder.png'
-},
-{
-  id: 5,
-  title: 'Secret vs. OG: Katowice starts with a highlight',
-  description: 'Lorem Ipsum has been the industrys standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.',
-  thumbnail: 'https://home.multilogica.com.br/wp-content/uploads/2021/03/placeholder.png'
-}]
+type HomeProps = {
+  posts: Contentful.Entry<Post>[];
+}
 
-export default function Home() {
+export default function Home({ posts: originalPosts }: HomeProps) {
+  const [highlightPost, ...posts] = originalPosts;
+
+  const router = useRouter();
+
+  const handleHighlightPostClick = useCallback(() => {
+    router.push(`/post/${highlightPost.sys.id}`)
+  }, [router, highlightPost.sys.id]);
+
   return (
     <div>
       <Head>
@@ -43,19 +29,19 @@ export default function Home() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       
-      <div className="w-4/5 m-auto bg-white mt-[-42px] rounded-tl-[1.875rem] min-h-[21.5rem] p-6 md:p-14 flex flex-wrap-reverse justify-around">
+      <div className="w-4/5 m-auto bg-white mt-[-42px] rounded-tl-[1.875rem] min-h-[21.5rem] p-6 md:p-14 flex flex-wrap-reverse justify-around cursor-pointer" onClick={handleHighlightPostClick}>
         <div className="w-[38.75rem] max-h-80">
-          <h2 className="font-bold text-[#232323] text-2xl mb-[0.625rem]">New Apex Legends Weapon Revealed, Havoc Arrives Today</h2>
-          <p className="text-lg">Lorem Ipsum has been the industrys standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book.</p>
+          <h2 className="font-bold text-[#232323] text-2xl mb-[0.625rem]">{highlightPost.fields.title}</h2>
+          <p className="text-lg">{highlightPost.fields.description}</p>
         </div>
         <div className="w-[35.625rem] max-h-80">
-          <img alt="Thumbnail" className="w-full h-full object-cover rounded-[1.25rem]" src='https://home.multilogica.com.br/wp-content/uploads/2021/03/placeholder.png' />
+          <img alt="Thumbnail" className="w-full h-full object-cover rounded-[1.25rem] hover:opacity-90" src={highlightPost.fields.thumbnail.fields.file.url} />
         </div>
       </div>
 
       <div className="max-w-[80%] m-auto flex gap-16 flex-wrap justify-center">
         {posts.map((post) => (
-          <PostCard key={post.id} post={post} />
+          <PostCard key={`post-${post.sys.id}`} post={post} />
         ))}
       </div>
     </div>
@@ -64,4 +50,14 @@ export default function Home() {
 
 Home.getLayout = function getLayout(page) {
   return <Layout title="News">{page}</Layout>
+}
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  const posts = await getPosts();
+
+  return {
+    props: {
+      posts
+    }
+  }
 }
